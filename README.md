@@ -107,7 +107,7 @@
 
 ---
 
-# **🚀 Learning Approach**
+## **🚀 Learning Approach**
 
 1️⃣ Start with **Fundamental Concepts** for each category.  
 2️⃣ Once comfortable, **move to AWS services** in that category.  
