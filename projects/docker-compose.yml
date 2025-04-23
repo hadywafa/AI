@@ -1,0 +1,22 @@
+version: "3"
+services:
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_volume:/root/.ollama
+
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: [gpu]
+
+volumes:
+  ollama_volume:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: C:\DockerVolumes\ollama
