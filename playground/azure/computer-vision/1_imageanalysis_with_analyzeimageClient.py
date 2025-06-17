@@ -1,29 +1,40 @@
-# Image Analysis - Generate tag, description
-# https://learn.microsoft.com/en-us/azure/ai-services/computer-vision/how-to/call-analyze-image-40?pivots=programming-language-python#select-visual-features
+"""
+Azure AI Vision - Image Analysis Example
+Features: Tagging, Captioning, Reading, Smart Crops, People & Object Detection
+"""
+
 import os
-from azure.ai.vision.imageanalysis import ImageAnalysisClient   #pip install azure-ai-vision-imageanalysis     
+from azure.ai.vision.imageanalysis import ImageAnalysisClient
 from azure.ai.vision.imageanalysis.models import VisualFeatures
 from azure.core.credentials import AzureKeyCredential
 
-# Set the values of your computer vision endpoint and computer vision key
-# as environment variables:
+try:
+    from dotenv import load_dotenv
 
-endpoint = "https://bbscvis1.cognitiveservices.azure.com/"
-key = "61c48f73017b4f459aff90393d9a6011"
+    load_dotenv()
+except ImportError:
+    pass
 
+# 🔐 Load credentials securely
+AZURE_VISION_ENDPOINT = os.getenv("AZURE_VISION_ENDPOINT")
+AZURE_VISION_KEY = os.getenv("AZURE_VISION_KEY")
 
-# Create an Image Analysis client
-client = ImageAnalysisClient(
-    endpoint=endpoint,
-    credential=AzureKeyCredential(key)
+# Default image URL (can be replaced with dynamic input or CLI)
+DEFAULT_IMAGE_URL = (
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQykzoZeCE0p7LeuyHnLYCdPP2jju9d5PaMeA&s"
 )
 
-# Define image URL
-image_url = "https://whc.unesco.org/uploads/thumbs/site_0252_0008-750-750-20151104113424.jpg"
 
-# Analyze all visual features from an image stream. This will be a synchronously (blocking) call.
+def create_vision_client() -> ImageAnalysisClient:
+    if not AZURE_VISION_ENDPOINT or not AZURE_VISION_KEY:
+        raise EnvironmentError("Azure Vision endpoint or key is missing.")
+    return ImageAnalysisClient(
+        endpoint=AZURE_VISION_ENDPOINT, credential=AzureKeyCredential(AZURE_VISION_KEY)
+    )
 
-visual_features =[
+
+def analyze_image_from_url(client: ImageAnalysisClient, image_url: str) -> None:
+    visual_features = [
         VisualFeatures.TAGS,
         VisualFeatures.OBJECTS,
         VisualFeatures.CAPTION,
@@ -33,56 +44,76 @@ visual_features =[
         VisualFeatures.PEOPLE,
     ]
 
-# Analyze all visual features from an image stream. This will be a synchronously (blocking) call.
-result = client.analyze_from_url(
-    image_url=image_url,
-    visual_features=visual_features,
-    smart_crops_aspect_ratios=[0.9, 1.33],
-    gender_neutral_caption=True,
-    language="en"
-)
+    result = client.analyze_from_url(
+        image_url=image_url,
+        visual_features=visual_features,
+        smart_crops_aspect_ratios=[0.9, 1.33],
+        gender_neutral_caption=True,
+        language="en",
+    )
+
+    print("\n📸 Image Analysis Results:\n")
+
+    if result.caption:
+        print("📝 Caption:")
+        print(
+            f"   → '{result.caption.text}' (Confidence: {result.caption.confidence:.4f})"
+        )
+
+    if result.dense_captions:
+        print("\n🔍 Dense Captions:")
+        for caption in result.dense_captions.list:
+            print(
+                f"   → '{caption.text}' at {caption.bounding_box} (Confidence: {caption.confidence:.4f})"
+            )
+
+    if result.read and result.read.blocks:
+        print("\n📖 Read (OCR):")
+        for block in result.read.blocks:
+            for line in block.lines:
+                print(f"   Line: '{line.text}' at {line.bounding_polygon}")
+                for word in line.words:
+                    print(
+                        f"     Word: '{word.text}' at {word.bounding_polygon} (Confidence: {word.confidence:.4f})"
+                    )
+
+    if result.tags:
+        print("\n🏷️ Tags:")
+        for tag in result.tags.list:
+            print(f"   → '{tag.name}' (Confidence: {tag.confidence:.4f})")
+
+    if result.objects:
+        print("\n📦 Objects:")
+        for obj in result.objects.list:
+            tag = obj.tags[0]
+            print(
+                f"   → '{tag.name}' at {obj.bounding_box} (Confidence: {tag.confidence:.4f})"
+            )
+
+    if result.people:
+        print("\n🧑 People:")
+        for person in result.people.list:
+            print(
+                f"   → Bounding box: {person.bounding_box} (Confidence: {person.confidence:.4f})"
+            )
+
+    if result.smart_crops:
+        print("\n📐 Smart Crops:")
+        for crop in result.smart_crops.list:
+            print(
+                f"   → Aspect Ratio {crop.aspect_ratio}: Crop Area {crop.bounding_box}"
+            )
+
+    print("\n🖼️ Metadata:")
+    print(f"   → Image Size: {result.metadata.width}x{result.metadata.height}")
+    print(f"   → Model Version: {result.model_version}")
 
 
+def main():
+    print("🔎 Starting Azure AI Image Analysis...")
+    client = create_vision_client()
+    analyze_image_from_url(client, DEFAULT_IMAGE_URL)
 
-# Print all analysis results to the console
-print("Image analysis results:")
 
-# if result.caption is not None:
-#     print(" Caption:")
-#     print(f"   '{result.caption.text}', Confidence {result.caption.confidence:.4f}")
-
-# if result.dense_captions is not None:
-#     print(" Dense Captions:")
-#     for caption in result.dense_captions.list:
-#         print(f"   '{caption.text}', {caption.bounding_box}, Confidence: {caption.confidence:.4f}")
-
-if result.read is not None:
-    print(" Read:")
-    for line in result.read.blocks[0].lines:
-        print(f"   Line: '{line.text}', Bounding box {line.bounding_polygon}")
-        for word in line.words:
-            print(f"     Word: '{word.text}', Bounding polygon {word.bounding_polygon}, Confidence {word.confidence:.4f}")
-
-if result.tags is not None:
-    print(" Tags:")
-    for tag in result.tags.list:
-        print(f"   '{tag.name}', Confidence {tag.confidence:.4f}")
-
-if result.objects is not None:
-    print(" Objects:")
-    for object in result.objects.list:
-        print(f"   '{object.tags[0].name}', {object.bounding_box}, Confidence: {object.tags[0].confidence:.4f}")
-
-if result.people is not None:
-    print(" People:")
-    for person in result.people.list:
-        print(f"   {person.bounding_box}, Confidence {person.confidence:.4f}")
-
-if result.smart_crops is not None:
-    print(" Smart Cropping:")
-    for smart_crop in result.smart_crops.list:
-        print(f"   Aspect ratio {smart_crop.aspect_ratio}: Smart crop {smart_crop.bounding_box}")
-
-print(f" Image height: {result.metadata.height}")
-print(f" Image width: {result.metadata.width}")
-print(f" Model version: {result.model_version}")
+if __name__ == "__main__":
+    main()

@@ -5,7 +5,7 @@
       "name": "Debug ImageAnalysis.py",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/playground/azure/azure-content-safety/TextAnalysis.py",
+      "program": "${workspaceFolder}/playground/azure/computer-vision/1_imageanalysis_with_analyzeimageClient.py",
       "console": "integratedTerminal",
       "justMyCode": true,
       "env": {
