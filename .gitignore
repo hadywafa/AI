@@ -1,4 +1,5 @@
 
 # Ignore .env file of python
+.venv
 .env
 

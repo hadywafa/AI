@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug ImageAnalysis.py",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/playground/azure/azure-content-safety/ImageAnalysis.py",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      }
+    }
+  ]
+}
