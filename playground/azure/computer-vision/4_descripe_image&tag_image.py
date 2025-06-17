@@ -5,15 +5,28 @@ from msrest.authentication import CognitiveServicesCredentials
 
 from array import array
 import os
-from PIL import Image     # pip install pillow
+from PIL import Image  # pip install pillow
 import sys
 import time
 
-subscription_key = "61c48f73017b4f459aff90393d9a6011"
-endpoint = "https://bbscvis1.cognitiveservices.azure.com/"
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
 
 
-computervision_client = ComputerVisionClient(endpoint, CognitiveServicesCredentials(subscription_key))
+AZURE_VISION_ENDPOINT = os.getenv("AZURE_VISION_ENDPOINT")
+AZURE_VISION_KEY = os.getenv("AZURE_VISION_KEY")
+
+if not AZURE_VISION_ENDPOINT or not AZURE_VISION_KEY:
+    raise EnvironmentError("Azure Vision endpoint or key is missing.")
+
+
+computervision_client = ComputerVisionClient(
+    AZURE_VISION_ENDPOINT, CognitiveServicesCredentials(AZURE_VISION_KEY)
+)
 
 remote_image_url = "https://universe.nasa.gov/rails/active_storage/blobs/redirect/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBBdklCIiwiZXhwIjpudWxsLCJwdXIiOiJibG9iX2lkIn19--358fddd8d97c87255be0adfa918f14b1affcd437/BH_AccretionDisk_Sim_Stationary_1080.jpeg?disposition=inline"
 
@@ -27,7 +40,11 @@ if len(description_results.captions) == 0:
     print("No description detected.")
 else:
     for caption in description_results.captions:
-        print("'{}' with confidence {:.2f}%".format(caption.text, caption.confidence * 100))
+        print(
+            "'{}' with confidence {:.2f}%".format(
+                caption.text, caption.confidence * 100
+            )
+        )
 print()
 
 print("===== Tag an image - remote =====")
