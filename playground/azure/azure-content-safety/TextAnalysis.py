@@ -1,54 +1,89 @@
-# Azure AI ContentSafety Image Analysis
-# pip install azure-ai-contentsafety
+"""
+Azure AI Content Safety - Text Analysis
+Refactored by OpenAI ChatGPT
+"""
+
+import os
+from typing import Optional, Dict
+
+from azure.ai.contentsafety import ContentSafetyClient
+from azure.ai.contentsafety.models import AnalyzeTextOptions, TextCategory
+from azure.core.credentials import AzureKeyCredential
+from azure.core.exceptions import HttpResponseError
+
+# Optional: load from .env file (if using python-dotenv)
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
+
+# 🔐 Load from environment variables
+AZURE_CONTENT_SAFETY_KEY = os.getenv("AZURE_CONTENT_SAFETY_KEY")
+AZURE_CONTENT_SAFETY_ENDPOINT = os.getenv("AZURE_CONTENT_SAFETY_ENDPOINT")
 
 
-def analyze_text():
-    # [START analyze_text]
+def create_contentsafety_client() -> ContentSafetyClient:
+    """Initialize and return the Content Safety client."""
+    if not AZURE_CONTENT_SAFETY_KEY or not AZURE_CONTENT_SAFETY_ENDPOINT:
+        raise EnvironmentError("Azure Content Safety credentials not set.")
 
-    import os
-    from azure.ai.contentsafety import ContentSafetyClient
-    from azure.ai.contentsafety.models import TextCategory
-    from azure.core.credentials import AzureKeyCredential
-    from azure.core.exceptions import HttpResponseError
-    from azure.ai.contentsafety.models import AnalyzeTextOptions
+    return ContentSafetyClient(
+        endpoint=AZURE_CONTENT_SAFETY_ENDPOINT,
+        credential=AzureKeyCredential(AZURE_CONTENT_SAFETY_KEY),
+    )
 
-    key = "f7324ffadc7e4da0b5b253230a44a849"
-    endpoint = "https://azure-content-safety-demo-345.cognitiveservices.azure.com/"
 
-    # Create a Content Safety client
-    client = ContentSafetyClient(endpoint, AzureKeyCredential(key))
+def analyze_text_content(text: str) -> Optional[Dict[str, int]]:
+    """Analyze text for harmful content categories."""
+    client = create_contentsafety_client()
+    request = AnalyzeTextOptions(text=text)
 
-    # Construct a request
-    request = AnalyzeTextOptions(text="You are an idiot.I will kill you.")
-
-    # Analyze text
     try:
         response = client.analyze_text(request)
     except HttpResponseError as e:
-        print("Analyze text failed.")
+        print("[ERROR] Text analysis failed.")
         if e.error:
-            print(f"Error code: {e.error.code}")
-            print(f"Error message: {e.error.message}")
-            raise
-        print(e)
-        raise
+            print(f" → Code: {e.error.code}")
+            print(f" → Message: {e.error.message}")
+        else:
+            print(e)
+        return None
 
-    hate_result = next(item for item in response.categories_analysis if item.category == TextCategory.HATE)
-    self_harm_result = next(item for item in response.categories_analysis if item.category == TextCategory.SELF_HARM)
-    sexual_result = next(item for item in response.categories_analysis if item.category == TextCategory.SEXUAL)
-    violence_result = next(item for item in response.categories_analysis if item.category == TextCategory.VIOLENCE)
+    return {
+        (
+            item.category.name
+            if isinstance(item.category, TextCategory)
+            else item.category
+        ): item.severity
+        for item in response.categories_analysis
+        if item.severity is not None
+    }
 
-    if hate_result:
-        print(f"Hate severity: {hate_result.severity}")
-    if self_harm_result:
-        print(f"SelfHarm severity: {self_harm_result.severity}")
-    if sexual_result:
-        print(f"Sexual severity: {sexual_result.severity}")
-    if violence_result:
-        print(f"Violence severity: {violence_result.severity}")
 
-    # [END analyze_text]
+def print_analysis_results(results: Dict[str, int]) -> None:
+    """Pretty print severity of detected categories."""
+    print("\n--- Text Analysis Results ---")
+    for category in TextCategory:
+        severity = results.get(category.value)  # ✅ Use .value to match keys
+        if severity is not None:
+            print(f"{category.name}: Severity {severity}")
+        else:
+            print(f"{category.name}: Not detected")
+
+
+def main():
+    sample_text = "You are an idiot. I will kill you."
+    print(f'Analyzing text: "{sample_text}"\n')
+
+    results = analyze_text_content(sample_text)
+
+    if results:
+        print_analysis_results(results)
+    else:
+        print("No results or analysis failed.")
 
 
 if __name__ == "__main__":
-    analyze_text()
+    main()

@@ -1,359 +1,203 @@
-# Azure AI ContentSafety Text BlockList
+import os
+from typing import List, Optional
+from azure.ai.contentsafety import ContentSafetyClient, BlocklistClient
+from azure.ai.contentsafety.models import (
+    AnalyzeTextOptions,
+    TextBlocklist,
+    TextBlocklistItem,
+    AddOrUpdateTextBlocklistItemsOptions,
+    RemoveTextBlocklistItemsOptions,
+)
+from azure.core.credentials import AzureKeyCredential
+from azure.core.exceptions import HttpResponseError
 
-KEY = "f7324ffadc7e4da0b5b253230a44a849"   # Provide key here
-ENDPOINT = "https://azure-content-safety-demo-345.cognitiveservices.azure.com/" # Provide endpoint here
-def create_or_update_text_blocklist():
-    # [START create_or_update_text_blocklist]
+# Optional: load from .env file (if using python-dotenv)
+try:
+    from dotenv import load_dotenv
 
-    import os
-    from azure.ai.contentsafety import BlocklistClient
-    from azure.ai.contentsafety.models import TextBlocklist
-    from azure.core.credentials import AzureKeyCredential
-    from azure.core.exceptions import HttpResponseError
+    load_dotenv()
+except ImportError:
+    pass
 
-    key = KEY
-    endpoint = ENDPOINT
+# Load from environment or .env
+AZURE_CONTENT_SAFETY_KEY = os.getenv("AZURE_CONTENT_SAFETY_KEY")
+AZURE_CONTENT_SAFETY_ENDPOINT = os.getenv("AZURE_CONTENT_SAFETY_ENDPOINT")
+BLOCKLIST_NAME = "TestBlocklist"
 
-    # Create a Blocklist client
-    client = BlocklistClient(endpoint, AzureKeyCredential(key))
 
-    blocklist_name = "TestBlocklist"
-    blocklist_description = "Test blocklist management."
+def create_blocklist_client() -> BlocklistClient:
+    if not AZURE_CONTENT_SAFETY_KEY or not AZURE_CONTENT_SAFETY_ENDPOINT:
+        raise EnvironmentError("Azure Content Safety credentials not set.")
 
+    return BlocklistClient(
+        AZURE_CONTENT_SAFETY_ENDPOINT, AzureKeyCredential(AZURE_CONTENT_SAFETY_KEY)
+    )
+
+
+def create_content_safety_client() -> ContentSafetyClient:
+    if not AZURE_CONTENT_SAFETY_KEY or not AZURE_CONTENT_SAFETY_ENDPOINT:
+        raise EnvironmentError("Azure Content Safety credentials not set.")
+
+    return ContentSafetyClient(
+        AZURE_CONTENT_SAFETY_ENDPOINT, AzureKeyCredential(AZURE_CONTENT_SAFETY_KEY)
+    )
+
+
+def handle_error(prefix: str, e: HttpResponseError):
+    print(f"\n{prefix} failed:")
+    if e.error:
+        print(f"Error code: {e.error.code}")
+        print(f"Error message: {e.error.message}")
+    else:
+        print(e)
+    raise
+
+
+def create_or_update_text_blocklist(
+    description: str = "Test blocklist management.",
+) -> None:
+    client = create_blocklist_client()
     try:
         blocklist = client.create_or_update_text_blocklist(
-            blocklist_name=blocklist_name,
-            options=TextBlocklist(blocklist_name=blocklist_name, description=blocklist_description),
+            blocklist_name=BLOCKLIST_NAME,
+            options=TextBlocklist(
+                blocklist_name=BLOCKLIST_NAME, description=description
+            ),
         )
-        if blocklist:
-            print("\nBlocklist created or updated: ")
-            print(f"Name: {blocklist.blocklist_name}, Description: {blocklist.description}")
+        print(f"\nCreated or updated blocklist: {blocklist.blocklist_name}")
     except HttpResponseError as e:
-        print("\nCreate or update text blocklist failed: ")
-        if e.error:
-            print(f"Error code: {e.error.code}")
-            print(f"Error message: {e.error.message}")
-            raise
-        print(e)
-        raise
-
-    # [END create_or_update_text_blocklist]
+        handle_error("Create/Update blocklist", e)
 
 
-def add_block_items():
-    # [START add_block_items]
-
-    import os
-    from azure.ai.contentsafety import BlocklistClient
-    from azure.ai.contentsafety.models import AddOrUpdateTextBlocklistItemsOptions, TextBlocklistItem
-    from azure.core.credentials import AzureKeyCredential
-    from azure.core.exceptions import HttpResponseError
-
-    key = KEY
-    endpoint = ENDPOINT
-
-    # Create a Blocklist client
-    client = BlocklistClient(endpoint, AzureKeyCredential(key))
-
-    blocklist_name = "TestBlocklist"
-    block_item_text_1 = "k*ll"
-    block_item_text_2 = "h*te"
-
-    block_items = [TextBlocklistItem(text=block_item_text_1), TextBlocklistItem(text=block_item_text_2)]
+def add_block_items(texts: List[str]) -> None:
+    client = create_blocklist_client()
+    items = [TextBlocklistItem(text=text) for text in texts]
     try:
         result = client.add_or_update_blocklist_items(
-            blocklist_name=blocklist_name, options=AddOrUpdateTextBlocklistItemsOptions(blocklist_items=block_items)
+            blocklist_name=BLOCKLIST_NAME,
+            options=AddOrUpdateTextBlocklistItemsOptions(blocklist_items=items),
         )
-        for block_item in result.blocklist_items:
-            print(
-                f"BlockItemId: {block_item.blocklist_item_id}, Text: {block_item.text}, Description: {block_item.description}"
-            )
+        print("\nAdded block items:")
+        for item in result.blocklist_items:
+            print(f"ID: {item.blocklist_item_id}, Text: {item.text}")
     except HttpResponseError as e:
-        print("\nAdd block items failed: ")
-        if e.error:
-            print(f"Error code: {e.error.code}")
-            print(f"Error message: {e.error.message}")
-            raise
-        print(e)
-        raise
-
-    # [END add_block_items]
+        handle_error("Add block items", e)
 
 
-def analyze_text_with_blocklists():
-    # [START analyze_text_with_blocklists]
-
-    import os
-    from azure.ai.contentsafety import ContentSafetyClient
-    from azure.core.credentials import AzureKeyCredential
-    from azure.ai.contentsafety.models import AnalyzeTextOptions
-    from azure.core.exceptions import HttpResponseError
-
-    key = KEY
-    endpoint = ENDPOINT
-
-    # Create a Content Safety client
-    client = ContentSafetyClient(endpoint, AzureKeyCredential(key))
-
-    blocklist_name = "TestBlocklist"
-    input_text = "I h*te you and I want to k*ll you."
-
+def analyze_text_with_blocklists(text: str) -> None:
+    client = create_content_safety_client()
     try:
-        # After you edit your blocklist, it usually takes effect in 5 minutes, please wait some time before analyzing with blocklist after editing.
-        analysis_result = client.analyze_text(
-            AnalyzeTextOptions(text=input_text, blocklist_names=[blocklist_name], halt_on_blocklist_hit=False)
+        result = client.analyze_text(
+            AnalyzeTextOptions(
+                text=text, blocklist_names=[BLOCKLIST_NAME], halt_on_blocklist_hit=False
+            )
         )
-        if analysis_result and analysis_result.blocklists_match:
-            print("\nBlocklist match results: ")
-            for match_result in analysis_result.blocklists_match:
+        if result.blocklists_match:
+            print("\nBlocklist matches:")
+            for match in result.blocklists_match:
                 print(
-                    f"BlocklistName: {match_result.blocklist_name}, BlockItemId: {match_result.blocklist_item_id}, "
-                    f"BlockItemText: {match_result.blocklist_item_text}"
+                    f"Blocklist: {match.blocklist_name}, ID: {match.blocklist_item_id}, Text: {match.blocklist_item_text}"
                 )
+        else:
+            print("\nNo blocklist matches.")
     except HttpResponseError as e:
-        print("\nAnalyze text failed: ")
-        if e.error:
-            print(f"Error code: {e.error.code}")
-            print(f"Error message: {e.error.message}")
-            raise
-        print(e)
-        raise
-
-    # [END analyze_text_with_blocklists]
+        handle_error("Analyze text", e)
 
 
-def list_text_blocklists():
-    # [START list_text_blocklists]
-
-    import os
-    from azure.ai.contentsafety import BlocklistClient
-    from azure.core.credentials import AzureKeyCredential
-    from azure.core.exceptions import HttpResponseError
-
-    key = KEY
-    endpoint = ENDPOINT
-    # Create a Blocklist client
-    client = BlocklistClient(endpoint, AzureKeyCredential(key))
-
+def list_text_blocklists() -> None:
+    client = create_blocklist_client()
     try:
         blocklists = client.list_text_blocklists()
-        if blocklists:
-            print("\nList blocklists: ")
-            for blocklist in blocklists:
-                print(f"Name: {blocklist.blocklist_name}, Description: {blocklist.description}")
+        print("\nAvailable blocklists:")
+        for bl in blocklists:
+            print(f"Name: {bl.blocklist_name}, Description: {bl.description}")
     except HttpResponseError as e:
-        print("\nList text blocklists failed: ")
-        if e.error:
-            print(f"Error code: {e.error.code}")
-            print(f"Error message: {e.error.message}")
-            raise
-        print(e)
-        raise
-
-    # [END list_text_blocklists]
+        handle_error("List blocklists", e)
 
 
-def get_text_blocklist():
-    # [START get_text_blocklist]
-
-    import os
-    from azure.ai.contentsafety import BlocklistClient
-    from azure.core.credentials import AzureKeyCredential
-    from azure.core.exceptions import HttpResponseError
-
-    key = KEY
-    endpoint = ENDPOINT
-
-    # Create a Blocklist client
-    client = BlocklistClient(endpoint, AzureKeyCredential(key))
-
-    blocklist_name = "TestBlocklist"
-
+def get_text_blocklist() -> None:
+    client = create_blocklist_client()
     try:
-        blocklist = client.get_text_blocklist(blocklist_name=blocklist_name)
-        if blocklist:
-            print("\nGet blocklist: ")
-            print(f"Name: {blocklist.blocklist_name}, Description: {blocklist.description}")
-    except HttpResponseError as e:
-        print("\nGet text blocklist failed: ")
-        if e.error:
-            print(f"Error code: {e.error.code}")
-            print(f"Error message: {e.error.message}")
-            raise
-        print(e)
-        raise
-
-    # [END get_text_blocklist]
-
-
-def list_block_items():
-    # [START list_block_items]
-
-    import os
-    from azure.ai.contentsafety import BlocklistClient
-    from azure.core.credentials import AzureKeyCredential
-    from azure.core.exceptions import HttpResponseError
-
-    key = KEY
-    endpoint = ENDPOINT
-    # Create a Blocklist client
-    client = BlocklistClient(endpoint, AzureKeyCredential(key))
-
-    blocklist_name = "TestBlocklist"
-
-    try:
-        block_items = client.list_text_blocklist_items(blocklist_name=blocklist_name)
-        if block_items:
-            print("\nList block items: ")
-            for block_item in block_items:
-                print(
-                    f"BlockItemId: {block_item.blocklist_item_id}, Text: {block_item.text}, "
-                    f"Description: {block_item.description}"
-                )
-    except HttpResponseError as e:
-        print("\nList block items failed: ")
-        if e.error:
-            print(f"Error code: {e.error.code}")
-            print(f"Error message: {e.error.message}")
-            raise
-        print(e)
-        raise
-
-    # [END list_block_items]
-
-
-def get_block_item():
-    # [START get_block_item]
-
-    import os
-    from azure.ai.contentsafety import BlocklistClient
-    from azure.core.credentials import AzureKeyCredential
-    from azure.ai.contentsafety.models import TextBlocklistItem, AddOrUpdateTextBlocklistItemsOptions
-    from azure.core.exceptions import HttpResponseError
-
-    key = KEY
-    endpoint = ENDPOINT
-
-    # Create a Blocklist client
-    client = BlocklistClient(endpoint, AzureKeyCredential(key))
-
-    blocklist_name = "TestBlocklist"
-    block_item_text_1 = "k*ll"
-
-    try:
-        # Add a blockItem
-        add_result = client.add_or_update_blocklist_items(
-            blocklist_name=blocklist_name,
-            options=AddOrUpdateTextBlocklistItemsOptions(blocklist_items=[TextBlocklistItem(text=block_item_text_1)]),
-        )
-        if not add_result or not add_result.blocklist_items or len(add_result.blocklist_items) <= 0:
-            raise RuntimeError("BlockItem not created.")
-        block_item_id = add_result.blocklist_items[0].blocklist_item_id
-
-        # Get this blockItem by blockItemId
-        block_item = client.get_text_blocklist_item(blocklist_name=blocklist_name, blocklist_item_id=block_item_id)
-        print("\nGet blockitem: ")
+        blocklist = client.get_text_blocklist(blocklist_name=BLOCKLIST_NAME)
         print(
-            f"BlockItemId: {block_item.blocklist_item_id}, Text: {block_item.text}, Description: {block_item.description}"
+            f"\nBlocklist: {blocklist.blocklist_name}, Description: {blocklist.description}"
         )
     except HttpResponseError as e:
-        print("\nGet block item failed: ")
-        if e.error:
-            print(f"Error code: {e.error.code}")
-            print(f"Error message: {e.error.message}")
-            raise
-        print(e)
-        raise
-
-    # [END get_block_item]
+        handle_error("Get blocklist", e)
 
 
-def remove_block_items():
-    # [START remove_block_items]
-
-    import os
-    from azure.ai.contentsafety import BlocklistClient
-    from azure.core.credentials import AzureKeyCredential
-    from azure.ai.contentsafety.models import (
-        TextBlocklistItem,
-        AddOrUpdateTextBlocklistItemsOptions,
-        RemoveTextBlocklistItemsOptions,
-    )
-    from azure.core.exceptions import HttpResponseError
-
-    key = KEY
-    endpoint = ENDPOINT
-    # Create a Blocklist client
-    client = BlocklistClient(endpoint, AzureKeyCredential(key))
-
-    blocklist_name = "TestBlocklist"
-    block_item_text_1 = "k*ll"
-
+def list_block_items() -> None:
+    client = create_blocklist_client()
     try:
-        # Add a blockItem
-        add_result = client.add_or_update_blocklist_items(
-            blocklist_name=blocklist_name,
-            options=AddOrUpdateTextBlocklistItemsOptions(blocklist_items=[TextBlocklistItem(text=block_item_text_1)]),
-        )
-        if not add_result or not add_result.blocklist_items or len(add_result.blocklist_items) <= 0:
-            raise RuntimeError("BlockItem not created.")
-        block_item_id = add_result.blocklist_items[0].blocklist_item_id
-
-        # Remove this blockItem by blockItemId
-        client.remove_blocklist_items(
-            blocklist_name=blocklist_name, options=RemoveTextBlocklistItemsOptions(blocklist_item_ids=[block_item_id])
-        )
-        print(f"\nRemoved blockItem: {add_result.blocklist_items[0].blocklist_item_id}")
+        items = client.list_text_blocklist_items(blocklist_name=BLOCKLIST_NAME)
+        print("\nBlock items:")
+        for item in items:
+            print(
+                f"ID: {item.blocklist_item_id}, Text: {item.text}, Description: {item.description}"
+            )
     except HttpResponseError as e:
-        print("\nRemove block item failed: ")
-        if e.error:
-            print(f"Error code: {e.error.code}")
-            print(f"Error message: {e.error.message}")
-            raise
-        print(e)
-        raise
-
-    # [END remove_block_items]
+        handle_error("List block items", e)
 
 
-def delete_blocklist():
-    # [START delete_blocklist]
-
-    import os
-    from azure.ai.contentsafety import BlocklistClient
-    from azure.core.credentials import AzureKeyCredential
-    from azure.core.exceptions import HttpResponseError
-
-    key = KEY
-    endpoint = ENDPOINT
-
-    # Create a Blocklist client
-    client = BlocklistClient(endpoint, AzureKeyCredential(key))
-
-    blocklist_name = "TestBlocklist"
-
+def get_block_item(text: str) -> Optional[str]:
+    client = create_blocklist_client()
     try:
-        client.delete_text_blocklist(blocklist_name=blocklist_name)
-        print(f"\nDeleted blocklist: {blocklist_name}")
+        result = client.add_or_update_blocklist_items(
+            blocklist_name=BLOCKLIST_NAME,
+            options=AddOrUpdateTextBlocklistItemsOptions(
+                blocklist_items=[TextBlocklistItem(text=text)]
+            ),
+        )
+        if result.blocklist_items:
+            item_id = result.blocklist_items[0].blocklist_item_id
+            item = client.get_text_blocklist_item(
+                blocklist_name=BLOCKLIST_NAME, blocklist_item_id=item_id
+            )
+            print(
+                f"\nFetched block item: ID: {item.blocklist_item_id}, Text: {item.text}"
+            )
+            return item.blocklist_item_id
     except HttpResponseError as e:
-        print("\nDelete blocklist failed:")
-        if e.error:
-            print(f"Error code: {e.error.code}")
-            print(f"Error message: {e.error.message}")
-            raise
-        print(e)
-        raise
+        handle_error("Get block item", e)
+    return None
 
-    # [END delete_blocklist]
+
+def remove_block_items_by_text(text: str) -> None:
+    client = create_blocklist_client()
+    try:
+        result = client.add_or_update_blocklist_items(
+            blocklist_name=BLOCKLIST_NAME,
+            options=AddOrUpdateTextBlocklistItemsOptions(
+                blocklist_items=[TextBlocklistItem(text=text)]
+            ),
+        )
+        if result.blocklist_items:
+            item_id = result.blocklist_items[0].blocklist_item_id
+            client.remove_blocklist_items(
+                blocklist_name=BLOCKLIST_NAME,
+                options=RemoveTextBlocklistItemsOptions(blocklist_item_ids=[item_id]),
+            )
+            print(f"\nRemoved block item ID: {item_id}")
+    except HttpResponseError as e:
+        handle_error("Remove block item", e)
+
+
+def delete_blocklist() -> None:
+    client = create_blocklist_client()
+    try:
+        client.delete_text_blocklist(blocklist_name=BLOCKLIST_NAME)
+        print(f"\nDeleted blocklist: {BLOCKLIST_NAME}")
+    except HttpResponseError as e:
+        handle_error("Delete blocklist", e)
 
 
 if __name__ == "__main__":
     create_or_update_text_blocklist()
-    add_block_items()
-    analyze_text_with_blocklists()
+    add_block_items(["k*ll", "h*te"])
+    analyze_text_with_blocklists("I h*te you and I want to k*ll you.")
     list_text_blocklists()
     get_text_blocklist()
     list_block_items()
-    get_block_item()
-    remove_block_items()
+    get_block_item("k*ll")
+    remove_block_items_by_text("k*ll")
     delete_blocklist()

@@ -1,80 +1,104 @@
-# Azure AI ContentSafety Image Analysis
-# pip install azure-ai-contentsafety
+"""
+Azure AI Content Safety - Image Analysis
+Refactored by OpenAI ChatGPT
+"""
+
+import os
+from pathlib import Path
+from typing import Optional
+
+from azure.ai.contentsafety import ContentSafetyClient
+from azure.ai.contentsafety.models import AnalyzeImageOptions, ImageData, ImageCategory
+from azure.core.credentials import AzureKeyCredential
+from azure.core.exceptions import HttpResponseError
+from dotenv import load_dotenv
+
+# Optional: load from .env file (if using python-dotenv)
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
+
+# ✅ Load secrets securely from env
+AZURE_CONTENT_SAFETY_KEY = os.getenv("AZURE_CONTENT_SAFETY_KEY")
+AZURE_CONTENT_SAFETY_ENDPOINT = os.getenv("AZURE_CONTENT_SAFETY_ENDPOINT")
 
 
-def analyze_image():
-    # [START analyze_image]
+def get_image_path(filename: str) -> Path:
+    """Resolve absolute path to the image file."""
+    return Path(__file__).resolve().parent / "sample_data" / filename
 
-    import os
-    from azure.ai.contentsafety import (
-        ContentSafetyClient,
-    )  # pip install azure-ai-contentsafety
-    from azure.ai.contentsafety.models import ImageCategory
-    from azure.core.credentials import AzureKeyCredential
-    from azure.core.exceptions import HttpResponseError
-    from azure.ai.contentsafety.models import AnalyzeImageOptions, ImageData
 
-    key = "f7324ffadc7e4da0b5b253230a44a849"
-    endpoint = "https://azure-content-safety-demo-345.cognitiveservices.azure.com/"
-    image_path = os.path.abspath(
-        os.path.join(
-            os.path.abspath(__file__),
-            "..",
-            "./sample_data/756692568a236c94619b202e9b68687a.jpg",
-        )
+def create_contentsafety_client() -> ContentSafetyClient:
+    """Initialize and return the ContentSafety client."""
+    if not AZURE_CONTENT_SAFETY_KEY or not AZURE_CONTENT_SAFETY_ENDPOINT:
+        raise EnvironmentError("Azure credentials not found in environment variables.")
+
+    return ContentSafetyClient(
+        AZURE_CONTENT_SAFETY_ENDPOINT, AzureKeyCredential(AZURE_CONTENT_SAFETY_KEY)
     )
 
-    # Create a Content Safety client
-    client = ContentSafetyClient(endpoint, AzureKeyCredential(key))
 
-    # Build request
-    with open(image_path, "rb") as file:
-        request = AnalyzeImageOptions(image=ImageData(content=file.read()))
+def analyze_image_file(image_path: Path) -> Optional[dict]:
+    """Analyze an image using Azure AI Content Safety."""
+    client = create_contentsafety_client()
 
-    # Analyze image
     try:
-        response = client.analyze_image(request)
+        with image_path.open("rb") as file:
+            image_data = ImageData(content=file.read())
+            request = AnalyzeImageOptions(image=image_data)
+            response = client.analyze_image(request)
+
+        # Extract categories
+
+        # results = {
+        #     item.category: item.severity for item in response.categories_analysis
+        # }
+
+        results = {
+            (
+                item.category.name
+                if isinstance(item.category, ImageCategory)
+                else item.category
+            ): item.severity
+            for item in response.categories_analysis
+        }
+
+        return results
+
     except HttpResponseError as e:
-        print("Analyze image failed.")
+        print("[ERROR] Image analysis failed.")
         if e.error:
-            print(f"Error code: {e.error.code}")
-            print(f"Error message: {e.error.message}")
-            raise
-        print(e)
-        raise
+            print(f" → Code: {e.error.code}")
+            print(f" → Message: {e.error.message}")
+        else:
+            print(e)
+        return None
 
-    hate_result = next(
-        item
-        for item in response.categories_analysis
-        if item.category == ImageCategory.HATE
-    )
-    self_harm_result = next(
-        item
-        for item in response.categories_analysis
-        if item.category == ImageCategory.SELF_HARM
-    )
-    sexual_result = next(
-        item
-        for item in response.categories_analysis
-        if item.category == ImageCategory.SEXUAL
-    )
-    violence_result = next(
-        item
-        for item in response.categories_analysis
-        if item.category == ImageCategory.VIOLENCE
-    )
 
-    if hate_result:
-        print(f"Hate severity: {hate_result.severity}")
-    if self_harm_result:
-        print(f"SelfHarm severity: {self_harm_result.severity}")
-    if sexual_result:
-        print(f"Sexual severity: {sexual_result.severity}")
-    if violence_result:
-        print(f"Violence severity: {violence_result.severity}")
+def print_analysis_results(results: dict) -> None:
+    """Print the severity levels for each category."""
+    print("\n--- Analysis Results ---")
+    for category in ImageCategory:
+        severity = results.get(category.value)
+        if severity is not None:
+            print(f"{category.name}: Severity {severity}")
+        else:
+            print(f"{category.name}: Not detected")
 
-    # [END analyze_image]
+
+def main():
+    image_path = get_image_path("porn-image.jpg")
+    print(f"Analyzing image: {image_path}")
+
+    results = analyze_image_file(image_path)
+    if results:
+        print_analysis_results(results)
+    else:
+        print("Image analysis failed or returned no results.")
 
 
 if __name__ == "__main__":
-    analyze_image()
+    main()
