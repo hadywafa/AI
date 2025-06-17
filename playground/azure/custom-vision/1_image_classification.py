@@ -1,116 +1,159 @@
+import os
+import uuid
+import time
+from typing import List, Optional
+
 from azure.cognitiveservices.vision.customvision.training import (
     CustomVisionTrainingClient,
-)  # pip install azure-cognitiveservices-vision-customvision
+)
 from azure.cognitiveservices.vision.customvision.prediction import (
     CustomVisionPredictionClient,
 )
 from azure.cognitiveservices.vision.customvision.training.models import (
     ImageFileCreateBatch,
     ImageFileCreateEntry,
-    Region,
+    Tag,
+    Project,
+    Iteration,
 )
 from msrest.authentication import ApiKeyCredentials
-import os, time, uuid
 
-# retrieve environment variables
-ENDPOINT = "https://custvis1bbs.cognitiveservices.azure.com/"
-training_key = "186f6fc8998a4fafae38de8e8b5d3520"
-prediction_key = "d19107dd81374eb5bdb8897e2f247931"
-prediction_resource_id = "/subscriptions/e3101412-681c-4ea3-baa2-db1b63f8da98/resourceGroups/AI_Demo/providers/Microsoft.CognitiveServices/accounts/custVis1bbs-Prediction"
-PREDICTIONENDPOINT = "https://custvis1bbs-prediction.cognitiveservices.azure.com/"
+try:
+    from dotenv import load_dotenv
 
-publish_iteration_name = "classifyModel"
+    load_dotenv()
+except ImportError:
+    pass
 
-credentials = ApiKeyCredentials(in_headers={"Training-key": training_key})
-trainer = CustomVisionTrainingClient(ENDPOINT, credentials)
-
-
-# delele all exsiting project
-projects = trainer.get_projects()
-for project in projects:
-    iterations = trainer.get_iterations(project.id)
-    for iteration in iterations:
-        trainer.unpublish_iteration(iteration_id=iteration.id, project_id=project.id)
-    trainer.delete_project(project.id)
-
-# Create a new project
-print("Creating project...")
-project_name = uuid.uuid4()
-project = trainer.create_project(project_name)
-
-
-# Make two tags in the new project
-hemlock_tag = trainer.create_tag(project.id, "Hemlock")
-cherry_tag = trainer.create_tag(project.id, "Japanese Cherry")
-
-base_image_location = os.path.join(os.path.dirname(__file__), "Images")
-
-print("Adding images...")
-
-image_list = []
-
-for image_num in range(1, 11):
-    file_name = "hemlock_{}.jpg".format(image_num)
-    with open(
-        os.path.join(base_image_location, "Hemlock", file_name), "rb"
-    ) as image_contents:
-        image_list.append(
-            ImageFileCreateEntry(
-                name=file_name, contents=image_contents.read(), tag_ids=[hemlock_tag.id]
-            )
-        )
-
-for image_num in range(1, 11):
-    file_name = "japanese_cherry_{}.jpg".format(image_num)
-    with open(
-        os.path.join(base_image_location, "Japanese_Cherry", file_name), "rb"
-    ) as image_contents:
-        image_list.append(
-            ImageFileCreateEntry(
-                name=file_name, contents=image_contents.read(), tag_ids=[cherry_tag.id]
-            )
-        )
-
-upload_result = trainer.create_images_from_files(
-    project.id, ImageFileCreateBatch(images=image_list)
+# 🔐 Environment configuration
+TRAINING_ENDPOINT: Optional[str] = os.getenv("AZURE_CUSTOMVISION_TRAINING_ENDPOINT")
+TRAINING_KEY: Optional[str] = os.getenv("AZURE_CUSTOMVISION_TRAINING_KEY")
+PREDICTION_ENDPOINT: Optional[str] = os.getenv("AZURE_CUSTOMVISION_PREDICTION_ENDPOINT")
+PREDICTION_KEY: Optional[str] = os.getenv("AZURE_CUSTOMVISION_PREDICTION_KEY")
+PREDICTION_RESOURCE_ID: Optional[str] = os.getenv(
+    "AZURE_CUSTOMVISION_PREDICTION_RESOURCE_ID"
 )
-if not upload_result.is_batch_successful:
-    print("Image batch upload failed.")
-    for image in upload_result.images:
-        print("Image status: ", image.status)
-    exit(-1)
+PUBLISH_NAME: str = "classifyModel"
+IMAGE_ROOT_DIR: str = os.path.join(os.path.dirname(__file__), "image_classification_resources")
 
-print("Training...")
-iteration = trainer.train_project(project.id)
-while iteration.status != "Completed":
-    iteration = trainer.get_iteration(project.id, iteration.id)
-    print("Training status: " + iteration.status)
-    print("Waiting 10 seconds...")
-    time.sleep(10)
 
-# The iteration is now trained. Publish it to the project endpoint
-trainer.publish_iteration(
-    project.id, iteration.id, publish_iteration_name, prediction_resource_id
-)
-print("Done!")
-
-# Now there is a trained endpoint that can be used to make a prediction
-prediction_credentials = ApiKeyCredentials(
-    in_headers={"Prediction-key": prediction_key}
-)
-predictor = CustomVisionPredictionClient(PREDICTIONENDPOINT, prediction_credentials)
-
-with open(
-    os.path.join(base_image_location, "Test/test_image.jpg"), "rb"
-) as image_contents:
-    results = predictor.classify_image(
-        project.id, publish_iteration_name, image_contents.read()
+def get_trainer() -> CustomVisionTrainingClient:
+    if not TRAINING_ENDPOINT or not TRAINING_KEY:
+        raise EnvironmentError("Missing training endpoint or key.")
+    return CustomVisionTrainingClient(
+        endpoint=TRAINING_ENDPOINT,
+        credentials=ApiKeyCredentials(in_headers={"Training-key": TRAINING_KEY}),
     )
 
-    # Display the results.
-    for prediction in results.predictions:
-        print(
-            "\t"
-            + prediction.tag_name
-            + ": {0:.2f}%".format(prediction.probability * 100)
+
+def get_predictor() -> CustomVisionPredictionClient:
+    if not PREDICTION_ENDPOINT or not PREDICTION_KEY:
+        raise EnvironmentError("Missing prediction endpoint or key.")
+    return CustomVisionPredictionClient(
+        endpoint=PREDICTION_ENDPOINT,
+        credentials=ApiKeyCredentials(in_headers={"Prediction-key": PREDICTION_KEY}),
+    )
+
+
+def clean_all_projects(trainer: CustomVisionTrainingClient) -> None:
+    print("🧹 Cleaning existing projects...")
+    for project in trainer.get_projects():
+        for iteration in trainer.get_iterations(project.id):
+            trainer.unpublish_iteration(
+                project_id=project.id, iteration_id=iteration.id
+            )
+        trainer.delete_project(project.id)
+
+
+def create_and_tag_project(
+    trainer: CustomVisionTrainingClient,
+) -> tuple[Project, Tag, Tag]:
+    print("🛠️ Creating project...")
+    project_name: str = f"FlowerClassifier-{uuid.uuid4()}"
+    project: Project = trainer.create_project(project_name)
+    hemlock_tag: Tag = trainer.create_tag(project.id, "Hemlock")
+    cherry_tag: Tag = trainer.create_tag(project.id, "Japanese Cherry")
+    return project, hemlock_tag, cherry_tag
+
+
+def load_images_for_tag(
+    tag_name: str, count: int, tag_id: str
+) -> List[ImageFileCreateEntry]:
+    entries: List[ImageFileCreateEntry] = []
+    for i in range(1, count + 1):
+        file_path = os.path.join(
+            IMAGE_ROOT_DIR,
+            tag_name.replace(" ", "_"),
+            f"{tag_name.lower().replace(' ', '_')}_{i}.jpg",
         )
+        with open(file_path, "rb") as f:
+            entries.append(
+                ImageFileCreateEntry(
+                    name=os.path.basename(file_path),
+                    contents=f.read(),
+                    tag_ids=[tag_id],
+                )
+            )
+    return entries
+
+
+def upload_images(
+    trainer: CustomVisionTrainingClient,
+    project_id: str,
+    hemlock_tag: Tag,
+    cherry_tag: Tag,
+) -> None:
+    print("📤 Uploading images...")
+    images: List[ImageFileCreateEntry] = []
+    images.extend(load_images_for_tag("Hemlock", 10, hemlock_tag.id))
+    images.extend(load_images_for_tag("Japanese Cherry", 10, cherry_tag.id))
+
+    upload_result = trainer.create_images_from_files(
+        project_id, ImageFileCreateBatch(images=images)
+    )
+    if not upload_result.is_batch_successful:
+        raise RuntimeError(
+            "❌ Image upload failed: "
+            + ", ".join([img.status for img in upload_result.images])
+        )
+
+
+def train_and_publish_model(
+    trainer: CustomVisionTrainingClient, project: Project
+) -> Iteration:
+    print("🧠 Training model...")
+    iteration: Iteration = trainer.train_project(project.id)
+    while iteration.status != "Completed":
+        print(f"⏳ Training status: {iteration.status}... waiting 10s")
+        time.sleep(10)
+        iteration = trainer.get_iteration(project.id, iteration.id)
+
+    print("✅ Training complete. Publishing...")
+    trainer.publish_iteration(
+        project.id, iteration.id, PUBLISH_NAME, PREDICTION_RESOURCE_ID
+    )
+    return iteration
+
+
+def run_prediction(predictor: CustomVisionPredictionClient, project_id: str) -> None:
+    print("🔍 Running prediction on test image...")
+    test_image_path = os.path.join(IMAGE_ROOT_DIR, "Test", "test_image.jpg")
+    with open(test_image_path, "rb") as image_data:
+        results = predictor.classify_image(project_id, PUBLISH_NAME, image_data.read())
+        print("📈 Prediction Results:")
+        for prediction in results.predictions:
+            print(f"  • {prediction.tag_name}: {prediction.probability * 100:.2f}%")
+
+
+def main() -> None:
+    trainer = get_trainer()
+    clean_all_projects(trainer)
+    project, hemlock_tag, cherry_tag = create_and_tag_project(trainer)
+    upload_images(trainer, project.id, hemlock_tag, cherry_tag)
+    train_and_publish_model(trainer, project)
+    predictor = get_predictor()
+    run_prediction(predictor, project.id)
+
+
+if __name__ == "__main__":
+    main()
