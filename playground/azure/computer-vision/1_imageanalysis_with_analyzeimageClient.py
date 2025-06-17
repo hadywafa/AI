@@ -20,9 +20,7 @@ AZURE_VISION_ENDPOINT = os.getenv("AZURE_VISION_ENDPOINT")
 AZURE_VISION_KEY = os.getenv("AZURE_VISION_KEY")
 
 # Default image URL (can be replaced with dynamic input or CLI)
-DEFAULT_IMAGE_URL = (
-    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQykzoZeCE0p7LeuyHnLYCdPP2jju9d5PaMeA&s"
-)
+DEFAULT_IMAGE_URL = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQykzoZeCE0p7LeuyHnLYCdPP2jju9d5PaMeA&s"
 
 
 def create_vision_client() -> ImageAnalysisClient:
