@@ -21,6 +21,12 @@
   "peacock.color": "#61dafb",
   "cSpell.words": [
     "blocklist",
-    "blocklists"
+    "blocklists",
+    "cognitiveservices",
+    "computervision",
+    "contentsafety",
+    "customvision",
+    "dotenv",
+    "imageanalysis"
   ]
 }
