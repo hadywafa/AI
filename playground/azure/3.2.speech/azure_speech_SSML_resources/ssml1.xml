@@ -1,0 +1,7 @@
+<!--https://learn.microsoft.com/en-us/azure/ai-services/speech-service/speech-synthesis-markup-voice-->
+<!--Voice examples - single voice -->
+<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
+    <voice name="en-US-AvaMultilingualNeural">
+        This is the text that is spoken.
+    </voice>
+</speak>

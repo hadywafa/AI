@@ -1,0 +1,7 @@
+<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="en-US">
+    <voice name="en-US-AvaMultilingualNeural">
+        <mstts:express-as style="angry" styledegree="2">
+           This is the text that is spoken. Do I sound angry to you?
+        </mstts:express-as>
+    </voice>
+</speak>

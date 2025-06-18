@@ -28,6 +28,8 @@
     "customvision",
     "dotenv",
     "imageanalysis",
+    "speechsdk",
+    "ssml",
     "textanalytics"
   ]
 }

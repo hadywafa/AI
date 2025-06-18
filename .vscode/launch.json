@@ -5,7 +5,7 @@
       "name": "Debug ImageAnalysis.py",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/playground/azure/computer-vision/2_Detect_landmarks.py",
+      "program": "${workspaceFolder}/playground/azure/3.2.speech/4_ssml_speech.py",
       "console": "integratedTerminal",
       "justMyCode": true,
       "env": {

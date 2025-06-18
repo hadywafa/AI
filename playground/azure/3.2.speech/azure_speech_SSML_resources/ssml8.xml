@@ -1,0 +1,10 @@
+<!-- https://learn.microsoft.com/en-us/azure/ai-services/speech-service/speech-synthesis-markup-structure#viseme-element -->
+<!-- https://learn.microsoft.com/en-us/azure/ai-services/speech-service/how-to-speech-synthesis-viseme?tabs=visemeid&pivots=programming-language-python -->
+<!-- A viseme is the visual description of a phoneme in spoken language. It defines the position of the face and mouth while a person is speaking.-->
+<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US">
+  <voice name="en-US-AvaNeural">
+    <mstts:viseme type="FacialExpression"/>
+    Rainbow has seven colors: Red, orange, yellow, green, blue, indigo, and violet.
+  </voice>
+</speak>
+
