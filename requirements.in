@@ -1,8 +1,10 @@
-azure-ai-contentsafety
 python-dotenv
+requests
+azure-ai-contentsafety
 azure-ai-vision-imageanalysis
 azure-cognitiveservices-vision-computervision
 azure-cognitiveservices-vision-customvision
 azure-ai-language-conversations
 azure-ai-textanalytics
 azure-cognitiveservices-speech
+azure-ai-translation-text
