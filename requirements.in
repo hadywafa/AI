@@ -3,3 +3,5 @@ python-dotenv
 azure-ai-vision-imageanalysis
 azure-cognitiveservices-vision-computervision
 azure-cognitiveservices-vision-customvision
+azure-ai-language-conversations
+azure-ai-textanalytics

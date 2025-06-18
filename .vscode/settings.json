@@ -27,6 +27,7 @@
     "contentsafety",
     "customvision",
     "dotenv",
-    "imageanalysis"
+    "imageanalysis",
+    "textanalytics"
   ]
 }

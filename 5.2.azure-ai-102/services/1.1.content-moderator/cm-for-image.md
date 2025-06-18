@@ -27,6 +27,8 @@ By the end of this topic, you will:
 
 ## 🧱 1. **Architecture of Image Moderation Workflow**
 
+<div align="center">
+
 ```mermaid
 graph TD
     A[Python Client] -->|SDK Call| B[ContentModeratorClient]
@@ -39,6 +41,8 @@ graph TD
     F & G & H --> I[JSON Results]
     I --> A
 ```
+
+</div>
 
 ---
 
