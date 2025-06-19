@@ -59,6 +59,8 @@ msrest==0.7.1
     #   azure-cognitiveservices-vision-customvision
 oauthlib==3.3.0
     # via requests-oauthlib
+pillow==11.2.1
+    # via -r requirements.in
 python-dotenv==1.1.0
     # via -r requirements.in
 requests==2.32.4
