@@ -1,5 +1,6 @@
 python-dotenv
 requests
+# ============== Azure AI Services Lib ===============
 azure-ai-contentsafety
 azure-ai-vision-imageanalysis
 azure-cognitiveservices-vision-computervision
@@ -9,4 +10,8 @@ azure-ai-textanalytics
 azure-cognitiveservices-speech
 azure-ai-translation-text
 azure-ai-documentintelligence
+# ============== Open AI - Dall-E Lib ===============
 pillow
+# ============== AI Agent Solution Lib ===============
+azure-ai-projects
+azure-identity
