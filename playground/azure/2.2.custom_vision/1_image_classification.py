@@ -28,13 +28,18 @@ except ImportError:
 # 🔐 Environment configuration
 TRAINING_ENDPOINT: Optional[str] = os.getenv("AZURE_CUSTOMVISION_TRAINING_ENDPOINT")
 TRAINING_KEY: Optional[str] = os.getenv("AZURE_CUSTOMVISION_TRAINING_KEY")
+
 PREDICTION_ENDPOINT: Optional[str] = os.getenv("AZURE_CUSTOMVISION_PREDICTION_ENDPOINT")
 PREDICTION_KEY: Optional[str] = os.getenv("AZURE_CUSTOMVISION_PREDICTION_KEY")
+
 PREDICTION_RESOURCE_ID: Optional[str] = os.getenv(
     "AZURE_CUSTOMVISION_PREDICTION_RESOURCE_ID"
 )
+
 PUBLISH_NAME: str = "classifyModel"
-IMAGE_ROOT_DIR: str = os.path.join(os.path.dirname(__file__), "image_classification_resources")
+IMAGE_ROOT_DIR: str = os.path.join(
+    os.path.dirname(__file__), "image_classification_resources"
+)
 
 
 def get_trainer() -> CustomVisionTrainingClient:
