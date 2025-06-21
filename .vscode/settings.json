@@ -32,6 +32,7 @@
     "genai",
     "groundedness",
     "imageanalysis",
+    "multimodal",
     "speechsdk",
     "ssml",
     "textanalytics"
