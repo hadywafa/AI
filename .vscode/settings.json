@@ -28,6 +28,7 @@
     "customvision",
     "documentintelligence",
     "dotenv",
+    "genai",
     "imageanalysis",
     "speechsdk",
     "ssml",

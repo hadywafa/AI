@@ -7,3 +7,5 @@
 4. Indexer
 
 5. projections
+
+6. indexer that uses a skillset
