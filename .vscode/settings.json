@@ -29,6 +29,7 @@
     "documentintelligence",
     "dotenv",
     "genai",
+    "groundedness",
     "imageanalysis",
     "speechsdk",
     "ssml",
