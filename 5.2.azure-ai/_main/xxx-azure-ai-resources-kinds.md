@@ -1,5 +1,9 @@
 # 🔑 Azure AI Resource Kinds: Two Options
 
+![alt text](image.png)
+
+![alt text](image-1.png)
+
 ## 🌀 1. **Multi-Service Resource** (`Azure AI services`)
 
 - Think of this as an **"all-in-one" subscription**.
