@@ -5,7 +5,7 @@
       "name": "Debug ImageAnalysis.py",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/playground/azure/3.3.translator/4_transliteration.py",
+      "program": "${workspaceFolder}/playground/azure/ai-foundry/main.py",
       "console": "integratedTerminal",
       "justMyCode": true,
       "env": {
