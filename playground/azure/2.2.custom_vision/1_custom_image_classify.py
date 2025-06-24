@@ -45,6 +45,7 @@ IMAGE_ROOT_DIR: str = os.path.join(
 def get_trainer() -> CustomVisionTrainingClient:
     if not TRAINING_ENDPOINT or not TRAINING_KEY:
         raise EnvironmentError("Missing training endpoint or key.")
+    
     return CustomVisionTrainingClient(
         endpoint=TRAINING_ENDPOINT,
         credentials=ApiKeyCredentials(in_headers={"Training-key": TRAINING_KEY}),
@@ -54,6 +55,7 @@ def get_trainer() -> CustomVisionTrainingClient:
 def get_predictor() -> CustomVisionPredictionClient:
     if not PREDICTION_ENDPOINT or not PREDICTION_KEY:
         raise EnvironmentError("Missing prediction endpoint or key.")
+    
     return CustomVisionPredictionClient(
         endpoint=PREDICTION_ENDPOINT,
         credentials=ApiKeyCredentials(in_headers={"Prediction-key": PREDICTION_KEY}),
@@ -127,6 +129,8 @@ def train_and_publish_model(
     trainer: CustomVisionTrainingClient, project: Project
 ) -> Iteration:
     print("🧠 Training model...")
+    # start training
+    # iteration is an async operation that returns an Iteration object which contains the training status
     iteration: Iteration = trainer.train_project(project.id)
     while iteration.status != "Completed":
         print(f"⏳ Training status: {iteration.status}... waiting 10s")
