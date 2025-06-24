@@ -220,24 +220,3 @@ flowchart TD
 ```
 
 </div>
-
----
-
-## Steps For Create Indexer
-
-- all data source convert to text using az ai service, and then azure ai search seatch on those text data 
-
-- so it only search on text data, and ai uses behinde the scene to extract text from different data source such as ( images/ video/text/audio)
-
-
-![ai-search-architecture](images/ai-search-architecture.png)
-
-![alt text](image.png)
-
-![alt text](image-1.png)
-
-> index data is like converting the raw data into table and provide some index column.
-
-1. create index by import the data (it may be from blob storage ..etc)
-1. enrichment data (optional) (if the data in specefic formate than text like (video, audio, images..etc) as it will use other az ai services behinde the scene to extract information to the index table)
-1. indexer schedule (dpend on frequency of your data changes)
