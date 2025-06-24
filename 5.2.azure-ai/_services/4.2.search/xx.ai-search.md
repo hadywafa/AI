@@ -11,6 +11,37 @@ It **indexes** your data, adds **search capabilities**, and can even **enrich it
 
 ---
 
+<div style="text-align: center;">
+    <img src="images/ai-search.png" alt="ai-search" style="border-radius: 10px; width: 60%;">
+</div>
+
+---
+
+## 🎭 Search Types in Azure Ai Search
+
+Azure AI Search supports **both vector search and traditional text search**, and even lets you combine them in what's called **hybrid search**.
+
+- **🔎 Text search** uses keyword-based matching (like BM25) to find documents containing specific terms.
+- **🧠 Vector search** works with embeddings—numerical representations of content—allowing it to find semantically similar results, even if the exact words don’t match.
+- **🤝 Hybrid search** blends both approaches in a single query, so you get the precision of keyword search and the nuance of semantic similarity.
+
+---
+
+> 💪 This makes Azure AI Search especially powerful for applications like `semantic search`, `multilingual retrieval`, and even `multimodal search` (e.g., combining text and image embeddings).  
+> 🧠 Vector search is key to modern **RAG** apps (chat with PDFs, internal docs, etc.).
+
+---
+
+| Feature          | Text Search                     | Vector Search (AI)                      |
+| ---------------- | ------------------------------- | --------------------------------------- |
+| Matching Type    | Exact keywords                  | Semantic similarity (meaning)           |
+| Tech             | `Lucene-based`                  | `Embeddings` (from OpenAI or similar)   |
+| Search for "man" | Matches only "man"              | Matches "man", "male", "gentleman"      |
+| Works with       | All Azure AI Search indexes     | `Requires vector store integration`     |
+| Use Case         | `FAQ`, `filtering`, lookup apps | `LLMs`, `RAG`, Chat over your documents |
+
+---
+
 ## 🧱 Core Concepts You Must Know
 
 ### 📦 1. Data Source (The Stuff You Want to Search)
@@ -72,20 +103,6 @@ This is where the **AI magic** happens:
 | Language detection & translation | Azure Translator       |
 
 📍 It turns **non-text data into searchable text**.
-
----
-
-## 🔎 Text Search vs 🧠 Vector Search
-
-| Feature          | Text Search                 | Vector Search (AI)                  |
-| ---------------- | --------------------------- | ----------------------------------- |
-| Matching Type    | Exact keywords              | Semantic similarity (meaning)       |
-| Tech             | Lucene-based                | Embeddings (from OpenAI or similar) |
-| Search for "man" | Matches only "man"          | Matches "man", "male", "gentleman"  |
-| Works with       | All Azure AI Search indexes | Requires vector store integration   |
-| Use Case         | FAQ, filtering, lookup apps | LLMs, RAG, Chat over your documents |
-
-🧠 Vector search is key to modern **RAG** apps (chat with PDFs, internal docs, etc.).
 
 ---
 
@@ -203,3 +220,24 @@ flowchart TD
 ```
 
 </div>
+
+---
+
+## Steps For Create Indexer
+
+- all data source convert to text using az ai service, and then azure ai search seatch on those text data 
+
+- so it only search on text data, and ai uses behinde the scene to extract text from different data source such as ( images/ video/text/audio)
+
+
+![ai-search-architecture](images/ai-search-architecture.png)
+
+![alt text](image.png)
+
+![alt text](image-1.png)
+
+> index data is like converting the raw data into table and provide some index column.
+
+1. create index by import the data (it may be from blob storage ..etc)
+1. enrichment data (optional) (if the data in specefic formate than text like (video, audio, images..etc) as it will use other az ai services behinde the scene to extract information to the index table)
+1. indexer schedule (dpend on frequency of your data changes)

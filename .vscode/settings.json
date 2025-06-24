@@ -32,7 +32,9 @@
     "genai",
     "groundedness",
     "imageanalysis",
+    "Lucene",
     "multimodal",
+    "skillset",
     "speechsdk",
     "ssml",
     "textanalytics"
